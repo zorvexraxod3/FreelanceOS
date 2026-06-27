@@ -75,6 +75,7 @@ export default function Dashboard() {
       color: 'text-amber-400',
       bg: 'bg-amber-400/10',
       link: '/projects',
+      trend: null,
     },
     {
       label: 'Overdue Payments',
@@ -83,6 +84,7 @@ export default function Dashboard() {
       color: 'text-red-400',
       bg: 'bg-red-400/10',
       link: '/invoices',
+      trend: null,
     },
     {
       label: 'Revenue This Month',
@@ -91,6 +93,7 @@ export default function Dashboard() {
       color: 'text-emerald-400',
       bg: 'bg-emerald-400/10',
       link: '/invoices',
+      trend: 'up',
     },
     {
       label: 'Total Clients',
@@ -99,6 +102,7 @@ export default function Dashboard() {
       color: 'text-blue-400',
       bg: 'bg-blue-400/10',
       link: '/clients',
+      trend: null,
     },
   ];
 
@@ -124,74 +128,98 @@ export default function Dashboard() {
             <Link
               key={card.label}
               to={card.link}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors"
+              className="stat-card group"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-2 rounded-lg ${card.bg}`}>
+                <div className={`p-2.5 rounded-lg ${card.bg} group-hover:scale-110 transition-transform`}>
                   <Icon className={`w-5 h-5 ${card.color}`} />
                 </div>
+                {card.trend === 'up' && (
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                )}
+                {card.trend === 'down' && (
+                  <TrendingDown className="w-4 h-4 text-red-400" />
+                )}
               </div>
-              <p className="text-2xl font-bold">{card.value}</p>
-              <p className="text-sm text-slate-400 mt-1">{card.label}</p>
+              <p className="text-2xl font-bold tracking-tight">{card.value}</p>
+              <p className="text-sm text-slate-400 mt-2">{card.label}</p>
             </Link>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold flex items-center gap-2">
+        <div className="panel">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold flex items-center gap-2 text-base">
               <CheckCircle2 className="w-4 h-4 text-blue-400" />
               Recent Milestones
             </h3>
-            <Link to="/projects" className="text-sm text-blue-400 hover:text-blue-300">
-              View all
+            <Link to="/projects" className="text-xs text-blue-400 hover:text-blue-300 font-medium">
+              View all →
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-1">
             {recentMilestones.length === 0 && (
-              <p className="text-slate-500 text-sm">No milestones yet</p>
+              <p className="text-slate-500 text-sm py-8 text-center">No milestones yet</p>
             )}
-            {recentMilestones.map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
-                <div>
-                  <p className="font-medium text-sm">{m.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {m.projects?.name} — {m.projects?.clients?.name}
-                  </p>
+            {recentMilestones.map((m: any, idx: number) => (
+              <div key={m.id} className={`flex items-start gap-4 py-3 ${idx !== recentMilestones.length - 1 ? 'border-b border-slate-800/50' : ''}`}>
+                <div className="flex flex-col items-center mt-1">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  {idx !== recentMilestones.length - 1 && (
+                    <div className="w-0.5 h-8 bg-slate-700 mt-2" />
+                  )}
                 </div>
-                <StatusBadge status={m.status} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{m.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {m.projects?.name} • {m.projects?.clients?.name}
+                  </p>
+                  <div className="mt-2">
+                    <StatusBadge status={m.status} />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold flex items-center gap-2">
+        <div className="panel">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold flex items-center gap-2 text-base">
               <FileText className="w-4 h-4 text-emerald-400" />
               Recent Invoices
             </h3>
-            <Link to="/invoices" className="text-sm text-blue-400 hover:text-blue-300">
-              View all
+            <Link to="/invoices" className="text-xs text-blue-400 hover:text-blue-300 font-medium">
+              View all →
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-1">
             {recentInvoices.length === 0 && (
-              <p className="text-slate-500 text-sm">No invoices yet</p>
+              <p className="text-slate-500 text-sm py-8 text-center">No invoices yet</p>
             )}
-            {recentInvoices.map((i: any) => (
-              <div key={i.id} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
-                <div>
-                  <p className="font-medium text-sm">{i.invoice_number}</p>
-                  <p className="text-xs text-slate-500">
-                    {i.projects?.name} — {i.projects?.clients?.name}
-                  </p>
+            {recentInvoices.map((i: any, idx: number) => (
+              <div key={i.id} className={`flex items-start gap-4 py-3 ${idx !== recentInvoices.length - 1 ? 'border-b border-slate-800/50' : ''}`}>
+                <div className="flex flex-col items-center mt-1">
+                  <div className={`w-2 h-2 rounded-full ${i.status === 'Overdue' ? 'bg-red-500' : i.status === 'Paid' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  {idx !== recentInvoices.length - 1 && (
+                    <div className="w-0.5 h-8 bg-slate-700 mt-2" />
+                  )}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">${Number(i.amount).toLocaleString()}</p>
-                  <StatusBadge status={i.status} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-sm">{i.invoice_number}</p>
+                      <p className="text-xs text-slate-500">
+                        {i.projects?.name} • {i.projects?.clients?.name}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-100 whitespace-nowrap">${Number(i.amount).toLocaleString()}</p>
+                  </div>
+                  <div className="mt-2">
+                    <StatusBadge status={i.status} />
+                  </div>
                 </div>
               </div>
             ))}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase, type Invoice } from '../lib/supabase';
-import { FileText, Search, DollarSign, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { FileText, Search, DollarSign, TrendingUp, AlertTriangle, CheckCircle2, Send, Bell } from 'lucide-react';
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [summary, setSummary] = useState({ total: 0, paid: 0, overdue: 0, pending: 0 });
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchInvoices();
@@ -29,6 +30,23 @@ export default function Invoices() {
     });
     setLoading(false);
   }
+
+  const handleSelectInvoice = (id: string) => {
+    const newSelected = new Set(selectedInvoices);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const handleSendReminders = () => {
+    if (selectedInvoices.size === 0) return;
+    console.log('Sending reminders for invoices:', Array.from(selectedInvoices));
+    // This would typically send WhatsApp/email reminders
+    setSelectedInvoices(new Set());
+  };
 
   const filtered = invoices.filter(
     (i: any) =>
@@ -62,16 +80,55 @@ export default function Invoices() {
         />
       </div>
 
+      {selectedInvoices.size > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <Bell className="w-5 h-5 text-blue-400" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-400">
+              {selectedInvoices.size} invoice{selectedInvoices.size !== 1 ? 's' : ''} selected
+            </p>
+            <p className="text-xs text-blue-300 mt-0.5">Select invoices to send payment reminders</p>
+          </div>
+          <button
+            onClick={handleSendReminders}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+          >
+            <Send className="w-4 h-4" />
+            Send Reminders
+          </button>
+          <button
+            onClick={() => setSelectedInvoices(new Set())}
+            className="px-3 py-2 text-sm text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="panel">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-800">
+                <tr className="border-b border-slate-700">
+                  <th className="text-left px-4 py-3 font-medium text-slate-400 w-6">
+                    <input
+                      type="checkbox"
+                      checked={selectedInvoices.size > 0 && selectedInvoices.size === filtered.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedInvoices(new Set(filtered.map((i: any) => i.id)));
+                        } else {
+                          setSelectedInvoices(new Set());
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 font-medium text-slate-400">Invoice #</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-400">Client / Project</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-400">Amount</th>
@@ -81,7 +138,20 @@ export default function Invoices() {
               </thead>
               <tbody>
                 {filtered.map((i: any) => (
-                  <tr key={i.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={i.id}
+                    className={`border-b border-slate-800/50 hover:bg-slate-800/40 transition-colors ${
+                      i.status === 'Overdue' ? 'bg-red-500/5' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoices.has(i.id)}
+                        onChange={() => handleSelectInvoice(i.id)}
+                        className="w-4 h-4 rounded border-slate-600 bg-slate-800 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-medium">{i.invoice_number}</td>
                     <td className="px-4 py-3">
                       <p className="text-sm">{i.projects?.clients?.name}</p>
@@ -91,14 +161,14 @@ export default function Invoices() {
                     <td className="px-4 py-3">
                       <InvoiceStatusBadge status={i.status} />
                     </td>
-                    <td className="px-4 py-3 text-slate-400">
+                    <td className={`px-4 py-3 ${i.status === 'Overdue' ? 'text-red-400 font-semibold' : 'text-slate-400'}`}>
                       {i.due_date ? new Date(i.due_date).toLocaleDateString() : '-'}
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                       No invoices found
                     </td>
                   </tr>
@@ -114,14 +184,14 @@ export default function Invoices() {
 
 function SummaryCard({ label, value, icon: Icon, color, bg }: any) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <div className="stat-card">
       <div className="flex items-center justify-between mb-3">
-        <div className={`p-2 rounded-lg ${bg}`}>
+        <div className={`p-2.5 rounded-lg ${bg}`}>
           <Icon className={`w-5 h-5 ${color}`} />
         </div>
       </div>
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-sm text-slate-400 mt-1">{label}</p>
+      <p className="text-xl font-bold tracking-tight">{value}</p>
+      <p className="text-sm text-slate-400 mt-2">{label}</p>
     </div>
   );
 }
