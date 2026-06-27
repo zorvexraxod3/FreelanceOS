@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, type Client } from '../lib/supabase';
-import { Plus, Search, Copy, Check, Phone, Mail, MessageCircle, ExternalLink } from 'lucide-react';
+import { Plus, Search, Copy, Check, Phone, Mail, MessageCircle, ExternalLink, MoreVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Clients() {
@@ -9,6 +9,7 @@ export default function Clients() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', whatsapp: '' });
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function Clients() {
               </thead>
               <tbody>
                 {filtered.map((client) => (
-                  <tr key={client.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                  <tr key={client.id} className="border-b border-slate-800/50 hover:bg-slate-800/40 transition-colors">
                     <td className="px-4 py-3">
                       <Link to={`/clients/${client.id}`} className="font-medium hover:text-blue-400 transition-colors">
                         {client.name}
@@ -137,14 +138,34 @@ export default function Clients() {
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        to={`/clients/${client.id}`}
-                        className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    <td className="px-4 py-3 text-right relative">
+                      <button
+                        onClick={() => setOpenDropdown(openDropdown === client.id ? null : client.id)}
+                        className="inline-flex items-center justify-center p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
                       >
-                        View
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
+                        <MoreVertical className="w-4 h-4 text-slate-400" />
+                      </button>
+                      {openDropdown === client.id && (
+                        <div className="absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
+                          <Link
+                            to={`/clients/${client.id}`}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors first:rounded-t-lg"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View Details
+                          </Link>
+                          <button
+                            onClick={() => {
+                              copyPortalLink(client.portal_token, client.id);
+                              setOpenDropdown(null);
+                            }}
+                            className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors"
+                          >
+                            <Copy className="w-4 h-4" />
+                            Copy Portal Link
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
